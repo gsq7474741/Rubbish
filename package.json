@@ -1,0 +1,13 @@
+{
+  "name": "rubber",
+  "private": true,
+  "scripts": {
+    "dev": "pnpm --filter @rubber/web dev",
+    "build": "pnpm --filter @rubber/web build",
+    "lint": "pnpm --filter @rubber/web lint"
+  },
+  "engines": {
+    "node": ">=20",
+    "pnpm": ">=9"
+  }
+}
