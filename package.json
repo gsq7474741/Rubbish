@@ -6,6 +6,7 @@
     "build": "pnpm --filter @rubber/web build",
     "lint": "pnpm --filter @rubber/web lint"
   },
+  "packageManager": "pnpm@10.6.5",
   "engines": {
     "node": ">=20",
     "pnpm": ">=9"
