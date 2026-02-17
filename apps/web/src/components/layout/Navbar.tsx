@@ -20,23 +20,31 @@ export function Navbar() {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [user, setUser] = useState<null | { username: string; display_name: string | null }>(null);
+  const [unreadCount, setUnreadCount] = useState(0);
 
   useEffect(() => {
     const supabase = createClient();
-    supabase.auth.getUser().then(({ data: { user: authUser } }) => {
-      if (authUser) {
-        setUser({
-          username: authUser.user_metadata?.username || authUser.id.slice(0, 8),
-          display_name: authUser.user_metadata?.display_name || authUser.user_metadata?.username || null,
-        });
+
+    async function loadAnonId() {
+      try {
+        const res = await fetch("/api/me");
+        const data = await res.json();
+        if (data.user?.anonId) {
+          setUser({ username: data.user.anonId, display_name: data.user.anonId });
+          setUnreadCount(data.user.unreadCount || 0);
+        }
+      } catch {
+        // fallback: not logged in
       }
+    }
+
+    supabase.auth.getUser().then(({ data: { user: authUser } }) => {
+      if (authUser) loadAnonId();
     });
+
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       if (session?.user) {
-        setUser({
-          username: session.user.user_metadata?.username || session.user.id.slice(0, 8),
-          display_name: session.user.user_metadata?.display_name || session.user.user_metadata?.username || null,
-        });
+        loadAnonId();
       } else {
         setUser(null);
       }
@@ -73,6 +81,11 @@ export function Navbar() {
                 )}
               >
                 {link.label}
+                {link.href === "/notifications" && unreadCount > 0 && (
+                  <span className="ml-1 inline-flex items-center justify-center min-w-[18px] h-[18px] px-1 text-[10px] font-bold text-white rounded-full" style={{ backgroundColor: "#e53e3e" }}>
+                    {unreadCount > 99 ? "99+" : unreadCount}
+                  </span>
+                )}
               </Link>
             </li>
           ))}
@@ -82,8 +95,8 @@ export function Navbar() {
                 {user.display_name || user.username}
               </button>
               <div className="absolute right-0 top-full hidden group-hover:block bg-white border border-[rgba(0,0,0,0.1)] shadow-md min-w-[160px] z-50">
-                <Link href={`/profile/${user.username}`} className="block px-5 py-1 text-sm text-[var(--or-dark-blue)] hover:bg-[var(--or-bg-gray)]">
-                  Profile
+                <Link href="/dashboard" className="block px-5 py-1 text-sm text-[var(--or-dark-blue)] hover:bg-[var(--or-bg-gray)]">
+                  My Dashboard
                 </Link>
                 <Link href="/settings" className="block px-5 py-1 text-sm text-[var(--or-dark-blue)] hover:bg-[var(--or-bg-gray)]">
                   Settings
@@ -170,8 +183,8 @@ export function Navbar() {
             ))}
             {user ? (
               <>
-                <Link href={`/profile/${user.username}`} className="block py-2 text-white text-base" onClick={() => setMobileOpen(false)}>
-                  Profile
+                <Link href="/dashboard" className="block py-2 text-white text-base" onClick={() => setMobileOpen(false)}>
+                  My Dashboard
                 </Link>
                 <button
                   onClick={async () => { const supabase = createClient(); await supabase.auth.signOut(); setUser(null); router.push('/'); router.refresh(); }}

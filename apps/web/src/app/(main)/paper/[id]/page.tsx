@@ -11,6 +11,7 @@ import { VoteButton } from "@/components/community/VoteButton";
 import { BibtexButton } from "@/components/forum/BibtexModal";
 import { ReplyTree } from "@/components/forum/ReplyTree";
 import { ShareButtons } from "@/components/forum/ShareButtons";
+import { anonymizeProfile, anonymizeList, hashUserId } from "@/lib/anonymize";
 
 export async function generateMetadata({ params }: { params: Promise<{ id: string }> }): Promise<Metadata> {
   const { id } = await params;
@@ -57,15 +58,15 @@ export default async function PaperPage({ params }: { params: Promise<{ id: stri
     .select("*, reviewer:profiles!reviewer_id(*), rebuttals(*, author:profiles!author_id(*))")
     .eq("paper_id", id)
     .order("created_at", { ascending: false });
-  const reviews = (reviewsData || []) as (Review & { rebuttals: (Rebuttal & { author?: { display_name: string | null; username: string } })[] })[];
+  const rawReviews = (reviewsData || []) as (Review & { rebuttals: (Rebuttal & { author?: { display_name: string | null; username: string; id?: string } })[] })[];
 
-  // Check if current user already submitted a review
-  const hasReviewed = currentUserId ? reviews.some((r) => r.reviewer_id === currentUserId) : false;
+  // Check permissions using REAL IDs before anonymization
+  const hasReviewed = currentUserId ? rawReviews.some((r) => r.reviewer_id === currentUserId) : false;
 
   // Fetch current user's votes on reviews
   let userVotes: Record<string, 1 | -1> = {};
-  if (currentUserId && reviews.length > 0) {
-    const reviewIds = reviews.map((r) => r.id);
+  if (currentUserId && rawReviews.length > 0) {
+    const reviewIds = rawReviews.map((r) => r.id);
     const { data: votesData } = await supabase
       .from("votes")
       .select("target_id, value")
@@ -79,13 +80,33 @@ export default async function PaperPage({ params }: { params: Promise<{ id: stri
     }
   }
 
-  // Fetch comments
+  // --- ANONYMIZE all user data (including self on public pages) ---
+  // Anonymize paper author
+  const anonAuthor = anonymizeProfile(paper.author as unknown as Record<string, unknown> | null) as unknown as Paper["author"];
+  const anonAuthorId = hashUserId(paper.author_id);
+
+  // Anonymize reviews (reviewer + rebuttal authors)
+  const reviews = rawReviews.map((r) => {
+    const anonReviewer = anonymizeProfile(r.reviewer as unknown as Record<string, unknown> | null) as unknown as Review["reviewer"];
+    const anonReviewerId = hashUserId(r.reviewer_id);
+    const anonRebuttals = r.rebuttals.map((rb) => {
+      const rbAuthorId = (rb as unknown as Record<string, unknown>).author_id as string | undefined;
+      return {
+        ...rb,
+        author_id: rbAuthorId ? hashUserId(rbAuthorId) : null,
+        author: anonymizeProfile(rb.author as unknown as Record<string, unknown> | null) as unknown as typeof rb.author,
+      };
+    });
+    return { ...r, reviewer: anonReviewer, reviewer_id: anonReviewerId, rebuttals: anonRebuttals };
+  });
+
+  // Fetch & anonymize comments (no currentUserId → anonymize everyone)
   const { data: commentsData } = await supabase
     .from("comments")
     .select("*, user:profiles!user_id(*)")
     .eq("paper_id", id)
     .order("created_at", { ascending: true });
-  const comments = (commentsData || []) as Comment[];
+  const comments = anonymizeList((commentsData || []) as Record<string, unknown>[], "user", "user_id") as unknown as Comment[];
 
   // Increment view count (best-effort)
   try { await supabase.rpc("increment_view_count", { paper_id: id }); } catch { /* ignore */ }
@@ -126,14 +147,11 @@ export default async function PaperPage({ params }: { params: Promise<{ id: stri
         </h2>
 
         {/* Authors */}
-        {paper.author && (
+        {anonAuthor && (
           <div className="italic text-sm mb-1" style={{ color: "var(--or-dark-blue)" }}>
-            <Link href={`/profile/${paper.author.username}`} style={{ color: "var(--or-medium-blue)" }} className="hover:underline">
-              {paper.author.display_name || paper.author.username}
-            </Link>
-            {paper.author.institution && (
-              <span className="not-italic text-[var(--or-subtle-gray)]"> · {paper.author.institution}</span>
-            )}
+            <span style={{ color: "var(--or-medium-blue)" }}>
+              {anonAuthor.display_name || anonAuthor.username || anonAuthorId}
+            </span>
           </div>
         )}
 
@@ -168,7 +186,7 @@ export default async function PaperPage({ params }: { params: Promise<{ id: stri
           <BibtexButton
             paperId={id}
             title={paper.title}
-            authorName={paper.author?.display_name || paper.author?.username || "Anonymous"}
+            authorName={anonAuthor?.display_name || anonAuthor?.username || anonAuthorId}
             year={new Date(paper.created_at).getFullYear().toString()}
             venueName={paper.venue?.name}
           />
@@ -254,9 +272,7 @@ export default async function PaperPage({ params }: { params: Promise<{ id: stri
 
         {reviews.map((review) => {
           const rec = DECISIONS[review.recommendation as keyof typeof DECISIONS];
-          const reviewerName = review.is_anonymous
-            ? "Anonymous Reviewer"
-            : review.reviewer?.display_name || review.reviewer?.username || "Reviewer";
+          const reviewerName = review.reviewer?.display_name || review.reviewer?.username || "Reviewer";
           const rebuttals = review.rebuttals || [];
           return (
             <div key={review.id} className="border-l-[3px] border-[#ddd] pl-4 mb-6">
@@ -319,7 +335,7 @@ export default async function PaperPage({ params }: { params: Promise<{ id: stri
                       <div className="flex items-center gap-2 mb-1">
                         <span className="text-xs font-bold" style={{ color: "var(--or-green)" }}>↩ Author Response</span>
                         <span className="text-xs text-[var(--or-subtle-gray)]">
-                          {rebuttal.author?.display_name || rebuttal.author?.username || "Author"} · {new Date(rebuttal.created_at).toLocaleDateString("en-US", { year: "numeric", month: "short", day: "numeric" })}
+                          {rebuttal.author?.display_name || rebuttal.author?.username || "Author Response"} · {new Date(rebuttal.created_at).toLocaleDateString("en-US", { year: "numeric", month: "short", day: "numeric" })}
                         </span>
                       </div>
                       <MarkdownRenderer content={rebuttal.content} className="text-xs" />

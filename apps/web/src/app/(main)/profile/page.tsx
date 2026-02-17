@@ -9,11 +9,6 @@ export default async function ProfileRedirect() {
     redirect("/login");
   }
 
-  const { data: profile } = await supabase
-    .from("profiles")
-    .select("username")
-    .eq("id", user.id)
-    .single();
-
-  redirect(`/profile/${profile?.username || user.id}`);
+  // In anonymous mode, redirect to dashboard instead of public profile
+  redirect("/dashboard");
 }

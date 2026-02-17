@@ -7,6 +7,7 @@ import { SubmissionButton } from "@/components/venue/SubmissionButton";
 import { VenueTabs } from "@/components/venue/VenueTabs";
 import { ActivityFeed } from "@/components/venue/ActivityFeed";
 import { MarkdownRenderer } from "@/components/ui/MarkdownRenderer";
+import { anonymizeList } from "@/lib/anonymize";
 import type { Paper, Venue } from "@/lib/types";
 
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
@@ -34,6 +35,7 @@ export default async function VenuePage({
   const offset = (page - 1) * limit;
 
   const supabase = await createClient();
+  const { data: { user: currentUser } } = await supabase.auth.getUser();
 
   // Fetch venue
   const { data: venueData, error: venueError } = await supabase
@@ -65,7 +67,8 @@ export default async function VenuePage({
   }
 
   const { data: papers, count } = await papersQuery.range(offset, offset + limit - 1);
-  const typedPapers = (papers || []) as Paper[];
+  const anonPapers = anonymizeList((papers || []) as unknown as Record<string, unknown>[], "author", "author_id");
+  const typedPapers = anonPapers as unknown as Paper[];
   const totalPages = Math.ceil((count || 0) / limit);
 
   const filterOptions = [

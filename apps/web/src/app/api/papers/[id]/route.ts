@@ -1,5 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import { NextRequest, NextResponse } from "next/server";
+import { anonymizeRecord } from "@/lib/anonymize";
 
 export async function GET(
   request: NextRequest,
@@ -7,6 +8,7 @@ export async function GET(
 ) {
   const { id } = await params;
   const supabase = await createClient();
+  const { data: { user: currentUser } } = await supabase.auth.getUser();
 
   const { data, error } = await supabase
     .from("papers")
@@ -25,7 +27,8 @@ export async function GET(
     // ignore
   }
 
-  return NextResponse.json({ data });
+  const anonymized = anonymizeRecord(data, "author", "author_id");
+  return NextResponse.json({ data: anonymized });
 }
 
 export async function PATCH(

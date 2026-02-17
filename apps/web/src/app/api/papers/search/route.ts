@@ -1,5 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import { NextRequest, NextResponse } from "next/server";
+import { anonymizeList } from "@/lib/anonymize";
 
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
@@ -13,6 +14,7 @@ export async function GET(request: NextRequest) {
   }
 
   const supabase = await createClient();
+  const { data: { user: currentUser } } = await supabase.auth.getUser();
 
   // Search by title or abstract using ilike
   const searchPattern = `%${q}%`;
@@ -28,5 +30,6 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 
-  return NextResponse.json({ data, count, page, limit });
+  const anonymized = anonymizeList(data || [], "author", "author_id");
+  return NextResponse.json({ data: anonymized, count, page, limit });
 }

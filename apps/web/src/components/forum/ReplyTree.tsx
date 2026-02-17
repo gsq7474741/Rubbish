@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import Link from "next/link";
 import type { Comment } from "@/lib/types";
 import { MarkdownRenderer } from "@/components/ui/MarkdownRenderer";
 
@@ -69,17 +68,9 @@ function ReplyNode({
       }}
     >
       <div className="text-sm font-semibold" style={{ color: "var(--or-dark-blue)" }}>
-        {comment.user ? (
-          <Link
-            href={`/profile/${comment.user.username}`}
-            style={{ color: "var(--or-medium-blue)" }}
-            className="hover:underline"
-          >
-            {comment.user.display_name || comment.user.username}
-          </Link>
-        ) : (
-          "Anonymous"
-        )}
+        <span style={{ color: "var(--or-medium-blue)" }}>
+          {comment.user?.display_name || comment.user?.username || "Anonymous"}
+        </span>
       </div>
       <div className="text-xs text-[var(--or-subtle-gray)] mb-1">
         {new Date(comment.created_at).toLocaleDateString("en-US", {

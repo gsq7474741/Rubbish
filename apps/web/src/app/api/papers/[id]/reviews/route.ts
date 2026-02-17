@@ -1,5 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { NextRequest, NextResponse } from "next/server";
+import { anonymizeList } from "@/lib/anonymize";
+import { createNotification } from "@/lib/notify";
 
 export async function GET(
   request: NextRequest,
@@ -7,6 +9,7 @@ export async function GET(
 ) {
   const { id } = await params;
   const supabase = await createClient();
+  const { data: { user: currentUser } } = await supabase.auth.getUser();
 
   const { data, error } = await supabase
     .from("reviews")
@@ -18,7 +21,8 @@ export async function GET(
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 
-  return NextResponse.json({ data });
+  const anonymized = anonymizeList(data || [], "reviewer", "reviewer_id");
+  return NextResponse.json({ data: anonymized });
 }
 
 export async function POST(
@@ -150,8 +154,9 @@ export async function POST(
           .eq("id", id);
 
         // Create notification for paper author
-        await supabase.from("notifications").insert({
-          user_id: paper.author_id,
+        await createNotification({
+          supabase,
+          userId: paper.author_id,
           type: "decision",
           title: `Decision on your paper`,
           body: `Your paper has received a decision: ${majorityDecision === "certified_rubbish" ? "🗑️ Certified Rubbish" : majorityDecision === "recyclable" ? "♻️ Recyclable" : "❌ Too Good, Rejected"}`,
@@ -162,8 +167,9 @@ export async function POST(
   }
 
   // Create notification for paper author about new review
-  await supabase.from("notifications").insert({
-    user_id: paper.author_id,
+  await createNotification({
+    supabase,
+    userId: paper.author_id,
     type: "new_review",
     title: "New review on your paper",
     body: `A reviewer has submitted an official review.`,

@@ -116,9 +116,10 @@ export default function VenueSubmitPage() {
     fetch(`/api/venues/${slug}`)
       .then((r) => r.json())
       .then((res) => {
-        if (res.data) {
-          setVenue(res.data);
-          setReviewMode(res.data.review_mode || "open");
+        const v = res.venue || res.data;
+        if (v) {
+          setVenue(v);
+          setReviewMode(v.review_mode || "open");
         }
       })
       .catch(() => {})

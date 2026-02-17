@@ -77,5 +77,33 @@ export async function POST(
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 
+  // Notify the reviewer about the author's rebuttal (best-effort)
+  try {
+    const { createNotification } = await import("@/lib/notify");
+
+    const { data: reviewData } = await supabase
+      .from("reviews")
+      .select("reviewer_id")
+      .eq("id", reviewId)
+      .single();
+
+    const { data: paperData } = await supabase
+      .from("papers")
+      .select("title")
+      .eq("id", paperId)
+      .single();
+
+    if (reviewData && reviewData.reviewer_id !== user.id) {
+      await createNotification({
+        supabase,
+        userId: reviewData.reviewer_id,
+        type: "new_comment",
+        title: "Author responded to your review",
+        body: `The author of "${paperData?.title || "a paper"}" submitted a rebuttal to your review.`,
+        link: `/paper/${paperId}`,
+      });
+    }
+  } catch { /* ignore notification errors */ }
+
   return NextResponse.json({ data }, { status: 201 });
 }

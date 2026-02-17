@@ -1,8 +1,10 @@
 import { createClient } from "@/lib/supabase/server";
 import { NextRequest, NextResponse } from "next/server";
+import { anonymizeList } from "@/lib/anonymize";
 
 export async function GET(request: NextRequest) {
   const supabase = await createClient();
+  const { data: { user: currentUser } } = await supabase.auth.getUser();
   const { searchParams } = new URL(request.url);
 
   const venue = searchParams.get("venue");
@@ -38,7 +40,8 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 
-  return NextResponse.json({ data, count, page, limit });
+  const anonymized = anonymizeList(data || [], "author", "author_id");
+  return NextResponse.json({ data: anonymized, count, page, limit });
 }
 
 export async function POST(request: NextRequest) {
@@ -93,6 +96,19 @@ export async function POST(request: NextRequest) {
       target_type: "paper",
       target_id: data.id,
       metadata: { paper_title: title, paper_id: data.id },
+    });
+  } catch { /* ignore */ }
+
+  // Submission confirmation notification (best-effort)
+  try {
+    const { createNotification } = await import("@/lib/notify");
+    await createNotification({
+      supabase,
+      userId: user.id,
+      type: "new_comment",
+      title: "Paper submitted successfully",
+      body: `Your paper "${title}" has been submitted and is ${status === "published" ? "published" : "awaiting review"}.`,
+      link: `/paper/${data.id}`,
     });
   } catch { /* ignore */ }
 
