@@ -14,6 +14,10 @@ export default function ApplyVenuePage() {
     review_mode: "open",
     website: "",
     contact: "",
+    deadline: "",
+    submission_open: "",
+    date: "",
+    location: "",
   });
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -205,6 +209,59 @@ export default function ApplyVenuePage() {
               style={{ borderRadius: 0, borderColor: "rgba(0,0,0,0.2)" }}
               placeholder="contact@example.com"
             />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium mb-1" style={{ color: "var(--or-dark-blue)" }}>
+              Location
+            </label>
+            <input
+              type="text"
+              value={form.location}
+              onChange={(e) => updateField("location", e.target.value)}
+              className="w-full px-3 py-2 border text-sm"
+              style={{ borderRadius: 0, borderColor: "rgba(0,0,0,0.2)" }}
+              placeholder="e.g., Virtual / Beijing, China"
+            />
+          </div>
+
+          <div className="grid grid-cols-3 gap-4">
+            <div>
+              <label className="block text-sm font-medium mb-1" style={{ color: "var(--or-dark-blue)" }}>
+                Submission Open
+              </label>
+              <input
+                type="date"
+                value={form.submission_open}
+                onChange={(e) => updateField("submission_open", e.target.value)}
+                className="w-full px-3 py-2 border text-sm"
+                style={{ borderRadius: 0, borderColor: "rgba(0,0,0,0.2)" }}
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium mb-1" style={{ color: "var(--or-dark-blue)" }}>
+                Deadline
+              </label>
+              <input
+                type="date"
+                value={form.deadline}
+                onChange={(e) => updateField("deadline", e.target.value)}
+                className="w-full px-3 py-2 border text-sm"
+                style={{ borderRadius: 0, borderColor: "rgba(0,0,0,0.2)" }}
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium mb-1" style={{ color: "var(--or-dark-blue)" }}>
+                Event Date
+              </label>
+              <input
+                type="date"
+                value={form.date}
+                onChange={(e) => updateField("date", e.target.value)}
+                className="w-full px-3 py-2 border text-sm"
+                style={{ borderRadius: 0, borderColor: "rgba(0,0,0,0.2)" }}
+              />
+            </div>
           </div>
 
           <button

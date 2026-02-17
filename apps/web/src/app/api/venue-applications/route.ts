@@ -48,7 +48,7 @@ export async function POST(request: NextRequest) {
   }
 
   const body = await request.json();
-  const { name, slug, subtitle, description, review_mode, website, contact } = body;
+  const { name, slug, subtitle, description, review_mode, website, contact, deadline, submission_open, date, location } = body;
 
   if (!name || !slug) {
     return NextResponse.json({ error: "Name and slug are required" }, { status: 400 });
@@ -81,6 +81,10 @@ export async function POST(request: NextRequest) {
       review_mode: review_mode || "open",
       website: website || null,
       contact: contact || null,
+      deadline: deadline || null,
+      submission_open: submission_open || null,
+      date: date || null,
+      location: location || null,
     })
     .select()
     .single();
