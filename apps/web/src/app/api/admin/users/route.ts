@@ -73,7 +73,7 @@ export async function PATCH(request: NextRequest) {
     return NextResponse.json({ error: "userId and role are required" }, { status: 400 });
   }
 
-  const validRoles = ["user", "venue_editor", "content_admin", "system_admin"];
+  const validRoles = ["user", "content_admin", "system_admin"];
   if (!validRoles.includes(role)) {
     return NextResponse.json({ error: "Invalid role" }, { status: 400 });
   }

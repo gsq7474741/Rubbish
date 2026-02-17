@@ -11,7 +11,7 @@ interface User {
   created_at: string;
 }
 
-const ROLES = ["user", "venue_editor", "content_admin", "system_admin"] as const;
+const ROLES = ["user", "content_admin", "system_admin"] as const;
 
 export default function AdminUsersPage() {
   const [users, setUsers] = useState<User[]>([]);
@@ -71,7 +71,6 @@ export default function AdminUsersPage() {
 
   const roleColors: Record<string, { bg: string; text: string }> = {
     user: { bg: "#e2e8f0", text: "#1a202c" },
-    venue_editor: { bg: "#c6f6d5", text: "#22543d" },
     content_admin: { bg: "#bee3f8", text: "#1a365d" },
     system_admin: { bg: "#fed7d7", text: "#742a2a" },
   };

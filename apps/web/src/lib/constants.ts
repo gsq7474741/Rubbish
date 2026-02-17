@@ -20,6 +20,7 @@ export const PAPER_STATUS = {
   under_review: "审稿中",
   published: "已发表",
   rejected_too_good: "因太好被拒",
+  withdrawn: "已撤回",
 } as const;
 
 export const CONTENT_TYPES = {

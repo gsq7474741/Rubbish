@@ -45,8 +45,10 @@ export async function POST(
     return NextResponse.json({ error: "Venue not found" }, { status: 404 });
   }
 
-  // Check permission: must be creator or existing editor
+  // Check permission: must be creator, existing editor, or system_admin
   const isCreator = venue.created_by === user.id;
+  const { data: profile } = await supabase.from("profiles").select("role").eq("id", user.id).single();
+  const isSystemAdmin = profile?.role === "system_admin";
   const { data: existingEditor } = await supabase
     .from("venue_editors")
     .select("role")
@@ -54,7 +56,7 @@ export async function POST(
     .eq("user_id", user.id)
     .single();
 
-  if (!isCreator && (!existingEditor || !["editor", "chief_editor"].includes(existingEditor.role))) {
+  if (!isCreator && !isSystemAdmin && (!existingEditor || !["editor", "chief_editor"].includes(existingEditor.role))) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
@@ -62,6 +64,11 @@ export async function POST(
 
   if (!username) {
     return NextResponse.json({ error: "username is required" }, { status: 400 });
+  }
+
+  // Prevent privilege escalation: only creator, chief_editor, or system_admin can assign chief_editor
+  if (role === "chief_editor" && !isCreator && !isSystemAdmin && existingEditor?.role !== "chief_editor") {
+    return NextResponse.json({ error: "Only creator or chief editor can assign chief_editor role" }, { status: 403 });
   }
 
   // Find user by username
@@ -111,6 +118,8 @@ export async function DELETE(
   }
 
   const isCreator = venue.created_by === user.id;
+  const { data: myProfile } = await supabase.from("profiles").select("role").eq("id", user.id).single();
+  const isSystemAdmin = myProfile?.role === "system_admin";
   const { data: myRole } = await supabase
     .from("venue_editors")
     .select("role")
@@ -118,8 +127,8 @@ export async function DELETE(
     .eq("user_id", user.id)
     .single();
 
-  if (!isCreator && myRole?.role !== "chief_editor") {
-    return NextResponse.json({ error: "Only creator or chief editor can remove editors" }, { status: 403 });
+  if (!isCreator && !isSystemAdmin && myRole?.role !== "chief_editor") {
+    return NextResponse.json({ error: "Only creator, chief editor, or system admin can remove editors" }, { status: 403 });
   }
 
   const { user_id } = await request.json();

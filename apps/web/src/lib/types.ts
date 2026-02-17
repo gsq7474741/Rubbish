@@ -8,7 +8,7 @@ export interface Profile {
   research_field: string | null;
   title: string | null;
   karma: number;
-  role: "user" | "venue_editor" | "content_admin" | "system_admin";
+  role: "user" | "content_admin" | "system_admin";
   created_at: string;
   updated_at: string;
 }
@@ -56,7 +56,7 @@ export interface Paper {
   pdf_url: string | null;
   image_urls: string[];
   review_mode: "open" | "blind" | "instant";
-  status: "submitted" | "under_review" | "published" | "rejected_too_good";
+  status: "submitted" | "under_review" | "published" | "rejected_too_good" | "withdrawn";
   decision: "certified_rubbish" | "recyclable" | "too_good" | null;
   decision_at: string | null;
   upvote_count: number;
@@ -72,6 +72,8 @@ export interface Paper {
   revision_number: number;
   previous_version_id: string | null;
   supplementary_urls: Record<string, string>[];
+  withdrawal_reason: string | null;
+  withdrawn_at: string | null;
   created_at: string;
   updated_at: string;
   // Joined fields

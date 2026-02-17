@@ -13,6 +13,7 @@ import { ReplyTree } from "@/components/forum/ReplyTree";
 import { ShareButtons } from "@/components/forum/ShareButtons";
 import { anonymizeProfile, anonymizeList, hashUserId } from "@/lib/anonymize";
 import { ReportButton } from "@/components/community/ReportButton";
+import { WithdrawButton } from "@/components/paper/WithdrawButton";
 
 export async function generateMetadata({ params }: { params: Promise<{ id: string }> }): Promise<Metadata> {
   const { id } = await params;
@@ -121,6 +122,7 @@ export default async function PaperPage({ params }: { params: Promise<{ id: stri
     under_review: { label: "Under Review", color: "#d4a017" },
     published: { label: "Published", color: "var(--or-green)" },
     rejected_too_good: { label: "Rejected (Too Good)", color: "var(--destructive)" },
+    withdrawn: { label: "Withdrawn", color: "#888" },
   };
   const statusInfo = statusLabels[paper.status] || null;
 
@@ -239,6 +241,55 @@ export default async function PaperPage({ params }: { params: Promise<{ id: stri
           <ShareButtons title={paper.title} paperId={id} />
           <ReportButton targetType="paper" targetId={id} />
         </div>
+
+        {/* Author Actions (like OpenReview's Edit/Delete buttons) */}
+        {isAuthor && (
+          <div className="flex items-center gap-2 mb-4 flex-wrap">
+            {(paper.status === "submitted" || paper.status === "under_review") && (
+              <Link
+                href={`/paper/${id}/edit`}
+                className="text-xs border border-[#ccc] px-3 py-1.5 bg-white hover:bg-[#f5f5f5] inline-flex items-center gap-1"
+                style={{ borderRadius: 0, color: "var(--or-medium-blue)" }}
+              >
+                ✏️ Edit
+              </Link>
+            )}
+            {(paper.status === "submitted" || paper.status === "under_review" || paper.status === "published") && (
+              <Link
+                href={`/paper/${id}/edit?mode=revise`}
+                className="text-xs border border-[#ccc] px-3 py-1.5 bg-white hover:bg-[#f5f5f5] inline-flex items-center gap-1"
+                style={{ borderRadius: 0, color: "var(--or-medium-blue)" }}
+              >
+                📝 Submit Revision
+              </Link>
+            )}
+            <Link
+              href={`/paper/${id}/revisions`}
+              className="text-xs border border-[#ccc] px-3 py-1.5 bg-white hover:bg-[#f5f5f5] inline-flex items-center gap-1"
+              style={{ borderRadius: 0, color: "var(--or-medium-blue)" }}
+            >
+              📋 Revisions
+            </Link>
+            {paper.status !== "withdrawn" && (
+              <WithdrawButton paperId={id} paperTitle={paper.title} />
+            )}
+          </div>
+        )}
+
+        {/* Withdrawn notice */}
+        {paper.status === "withdrawn" && (
+          <div className="p-3 mb-4 border border-[rgba(0,0,0,0.1)]" style={{ backgroundColor: "#f5f5f5" }}>
+            <p className="text-sm font-semibold" style={{ color: "#888" }}>🚫 This paper has been withdrawn by the author.</p>
+            {paper.withdrawal_reason && (
+              <p className="text-xs text-[var(--or-subtle-gray)] mt-1">Reason: {paper.withdrawal_reason}</p>
+            )}
+            {paper.withdrawn_at && (
+              <p className="text-xs text-[var(--or-subtle-gray)] mt-0.5">
+                Withdrawn on {new Date(paper.withdrawn_at).toLocaleDateString("en-US", { year: "numeric", month: "short", day: "numeric" })}
+              </p>
+            )}
+          </div>
+        )}
 
         <hr className="border-0 border-t border-[rgba(0,0,0,0.1)] my-6" />
 

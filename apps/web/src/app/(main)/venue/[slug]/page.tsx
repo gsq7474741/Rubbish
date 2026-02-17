@@ -196,35 +196,31 @@ export default async function VenuePage({
         {/* Submission Button */}
         <SubmissionButton venue={venue} />
 
-        {/* Manage Editors link (only for creator/editors) */}
+        {/* Management links (creator/editors/system_admin) */}
         {await (async () => {
           if (!currentUser) return null;
           const isCreator = venue.created_by === currentUser.id;
-          if (isCreator) {
-            return (
-              <div className="mb-4">
-                <Link href={`/venue/${slug}/manage`} className="text-xs hover:underline" style={{ color: "var(--or-medium-blue)" }}>
-                  ⚙ Manage Editors
-                </Link>
-              </div>
-            );
-          }
+          const { data: userProfile } = await supabase.from("profiles").select("role").eq("id", currentUser.id).single();
+          const isSystemAdmin = userProfile?.role === "system_admin";
           const { data: editorCheck } = await supabase
             .from("venue_editors")
             .select("role")
             .eq("venue_id", venue.id)
             .eq("user_id", currentUser.id)
             .single();
-          if (editorCheck) {
-            return (
-              <div className="mb-4">
-                <Link href={`/venue/${slug}/manage`} className="text-xs hover:underline" style={{ color: "var(--or-medium-blue)" }}>
-                  ⚙ Manage Editors
-                </Link>
-              </div>
-            );
-          }
-          return null;
+          const isEditor = !!editorCheck;
+          const canManage = isCreator || isEditor || isSystemAdmin;
+          if (!canManage) return null;
+          return (
+            <div className="mb-4 flex items-center gap-4">
+              <Link href={`/venue/${slug}/edit`} className="text-xs hover:underline" style={{ color: "var(--or-medium-blue)" }}>
+                ✏️ Edit Venue
+              </Link>
+              <Link href={`/venue/${slug}/manage`} className="text-xs hover:underline" style={{ color: "var(--or-medium-blue)" }}>
+                ⚙ Manage Editors
+              </Link>
+            </div>
+          );
         })()}
 
         {/* Tabs: Submissions | Sub-Venues? | Activity | About */}
