@@ -112,7 +112,7 @@ function SearchContent() {
             {results.map((paper) => (
               <div key={paper.id} className="py-[6px] border-b border-[rgba(0,0,0,0.1)]">
                 <h4 className="text-base font-bold m-0 leading-normal" style={{ color: "var(--or-green)" }}>
-                  <Link href={`/paper/${paper.id}`} className="hover:underline" style={{ color: "var(--or-green)" }}>
+                  <Link href={`/paper/${paper.id}`} prefetch={false} className="hover:underline" style={{ color: "var(--or-green)" }}>
                     {paper.title}
                   </Link>
                 </h4>

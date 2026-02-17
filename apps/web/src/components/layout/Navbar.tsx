@@ -60,26 +60,22 @@ export function Navbar() {
   // Auth state subscription — only once
   useEffect(() => {
     const supabase = createClient();
+    let mounted = true;
 
     supabase.auth.getUser().then(({ data: { user: authUser } }) => {
-      if (authUser) loadProfile();
+      if (mounted && authUser) loadProfile();
     });
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      if (session?.user) {
-        loadProfile();
-      } else {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      if (!mounted) return;
+      if (event === "SIGNED_IN" || event === "TOKEN_REFRESHED") {
+        if (session?.user) loadProfile();
+      } else if (event === "SIGNED_OUT") {
         setUser(null);
       }
     });
-    return () => subscription.unsubscribe();
+    return () => { mounted = false; subscription.unsubscribe(); };
   }, [loadProfile]);
-
-  // Refresh profile data (e.g. unread count) on route change
-  useEffect(() => {
-    if (user) loadProfile();
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [pathname]);
 
   function handleSearch(e: React.FormEvent) {
     e.preventDefault();

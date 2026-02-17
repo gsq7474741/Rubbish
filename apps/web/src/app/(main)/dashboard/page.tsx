@@ -80,13 +80,13 @@ export default async function DashboardPage({
                 <tr key={p.id} className="border-b border-[rgba(0,0,0,0.05)]">
                   <td className="py-2 pr-4 text-[var(--or-subtle-gray)]">{p.number}</td>
                   <td className="py-2 pr-4">
-                    <Link href={`/paper/${p.id}`} style={{ color: "var(--or-medium-blue)" }} className="hover:underline">
+                    <Link href={`/paper/${p.id}`} prefetch={false} style={{ color: "var(--or-medium-blue)" }} className="hover:underline">
                       {p.title}
                     </Link>
                   </td>
                   <td className="py-2 pr-4">
                     {p.venue ? (
-                      <Link href={`/venue/${p.venue.slug}`} style={{ color: "var(--or-medium-blue)" }} className="hover:underline">
+                      <Link href={`/venue/${p.venue.slug}`} prefetch={false} style={{ color: "var(--or-medium-blue)" }} className="hover:underline">
                         {p.venue.name}
                       </Link>
                     ) : "—"}
@@ -142,13 +142,13 @@ export default async function DashboardPage({
               {typedReviews.map((r) => (
                 <tr key={r.id} className="border-b border-[rgba(0,0,0,0.05)]">
                   <td className="py-2 pr-4">
-                    <Link href={`/paper/${r.paper?.id}`} style={{ color: "var(--or-medium-blue)" }} className="hover:underline">
+                    <Link href={`/paper/${r.paper?.id}`} prefetch={false} style={{ color: "var(--or-medium-blue)" }} className="hover:underline">
                       {r.paper?.title || "Unknown"}
                     </Link>
                   </td>
                   <td className="py-2 pr-4">
                     {r.paper?.venue ? (
-                      <Link href={`/venue/${r.paper.venue.slug}`} style={{ color: "var(--or-medium-blue)" }} className="hover:underline">
+                      <Link href={`/venue/${r.paper.venue.slug}`} prefetch={false} style={{ color: "var(--or-medium-blue)" }} className="hover:underline">
                         {r.paper.venue.name}
                       </Link>
                     ) : "—"}
@@ -194,7 +194,7 @@ export default async function DashboardPage({
               const venue = Array.isArray(p.venue) ? p.venue[0] : p.venue;
               return (
                 <li key={p.id as string} className="text-xs border-l-[3px] border-[#ddd] pl-3 py-1">
-                  <Link href={`/paper/${p.id}`} style={{ color: "var(--or-medium-blue)" }} className="hover:underline">
+                  <Link href={`/paper/${p.id}`} prefetch={false} style={{ color: "var(--or-medium-blue)" }} className="hover:underline">
                     {p.title as string}
                   </Link>
                   <span className="text-[var(--or-subtle-gray)] ml-2">

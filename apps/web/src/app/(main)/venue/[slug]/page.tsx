@@ -88,6 +88,7 @@ export default async function VenuePage({
           <Link
             key={f.key}
             href={f.key ? `/venue/${slug}?status=${f.key}` : `/venue/${slug}`}
+            prefetch={false}
             className={(status || "") === f.key ? "font-semibold" : "hover:underline"}
             style={{ color: (status || "") === f.key ? "var(--or-green)" : "var(--or-medium-blue)" }}
           >
@@ -109,6 +110,7 @@ export default async function VenuePage({
           <p className="text-sm text-[var(--or-subtle-gray)] mb-4">No submissions yet. Be the first to submit!</p>
           <Link
             href={`/venue/${slug}/submit`}
+            prefetch={false}
             className="inline-block px-4 py-2 text-sm text-white"
             style={{ backgroundColor: "var(--or-green)", borderRadius: 0 }}
           >
@@ -121,7 +123,7 @@ export default async function VenuePage({
       {totalPages > 1 && (
         <div className="flex items-center justify-center gap-2 py-6 text-sm">
           {page > 1 ? (
-            <Link href={`/venue/${slug}?${status ? `status=${status}&` : ""}page=${page - 1}`} style={{ color: "var(--or-medium-blue)" }} className="hover:underline">← Previous</Link>
+            <Link href={`/venue/${slug}?${status ? `status=${status}&` : ""}page=${page - 1}`} prefetch={false} style={{ color: "var(--or-medium-blue)" }} className="hover:underline">← Previous</Link>
           ) : (
             <span className="text-[var(--or-subtle-gray)]">← Previous</span>
           )}
@@ -130,11 +132,11 @@ export default async function VenuePage({
             return p === page ? (
               <span key={p} className="px-2 py-1 font-bold" style={{ color: "var(--or-green)" }}>{p}</span>
             ) : (
-              <Link key={p} href={`/venue/${slug}?${status ? `status=${status}&` : ""}page=${p}`} style={{ color: "var(--or-medium-blue)" }} className="px-2 py-1 hover:underline">{p}</Link>
+              <Link key={p} href={`/venue/${slug}?${status ? `status=${status}&` : ""}page=${p}`} prefetch={false} style={{ color: "var(--or-medium-blue)" }} className="px-2 py-1 hover:underline">{p}</Link>
             );
           })}
           {page < totalPages ? (
-            <Link href={`/venue/${slug}?${status ? `status=${status}&` : ""}page=${page + 1}`} style={{ color: "var(--or-medium-blue)" }} className="hover:underline">Next →</Link>
+            <Link href={`/venue/${slug}?${status ? `status=${status}&` : ""}page=${page + 1}`} prefetch={false} style={{ color: "var(--or-medium-blue)" }} className="hover:underline">Next →</Link>
           ) : (
             <span className="text-[var(--or-subtle-gray)]">Next →</span>
           )}
@@ -236,6 +238,7 @@ export default async function VenuePage({
                     <Link
                       key={sv.id}
                       href={`/venue/${sv.slug}`}
+                      prefetch={false}
                       className="block p-4 border border-[rgba(0,0,0,0.1)] bg-white hover:shadow-sm transition-shadow"
                       style={{ borderRadius: 0 }}
                     >

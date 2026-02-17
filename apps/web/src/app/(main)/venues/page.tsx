@@ -36,7 +36,7 @@ export default async function VenuesPage() {
   const renderVenueCard = (v: Venue) => (
     <div key={v.slug} className="py-4 border-b border-[rgba(0,0,0,0.1)]">
       <h4 className="text-base font-bold m-0 leading-normal" style={{ color: "var(--or-green)" }}>
-        <Link href={`/venue/${v.slug}`} className="hover:underline" style={{ color: "var(--or-green)" }}>
+        <Link href={`/venue/${v.slug}`} prefetch={false} className="hover:underline" style={{ color: "var(--or-green)" }}>
           {v.name}
         </Link>
       </h4>

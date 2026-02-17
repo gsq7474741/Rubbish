@@ -60,6 +60,7 @@ export function ActivityFeed({ venueId }: { venueId?: string }) {
               <strong>{userName}</strong> {actionLabels[a.action] || a.action}:{" "}
               <Link
                 href={`/paper/${paperId}`}
+                prefetch={false}
                 style={{ color: "var(--or-medium-blue)" }}
                 className="hover:underline"
               >

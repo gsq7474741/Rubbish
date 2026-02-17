@@ -183,7 +183,7 @@ export default async function ProfilePage({
               {userReviews.map((r) => (
                 <div key={r.id} className="py-3 border-b border-[rgba(0,0,0,0.05)]">
                   <div className="text-sm">
-                    <Link href={`/paper/${r.paper?.id}`} style={{ color: "var(--or-medium-blue)" }} className="hover:underline">
+                    <Link href={`/paper/${r.paper?.id}`} prefetch={false} style={{ color: "var(--or-medium-blue)" }} className="hover:underline">
                       {r.paper?.title || "Unknown paper"}
                     </Link>
                   </div>
