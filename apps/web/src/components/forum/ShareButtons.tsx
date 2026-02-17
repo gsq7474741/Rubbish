@@ -1,20 +1,28 @@
 "use client";
 
-import { useState } from "react";
-import { Copy, Check } from "lucide-react";
+import { useState, useEffect } from "react";
+import { Copy, Check, Share2 } from "lucide-react";
 
 interface ShareButtonsProps {
   title: string;
-  paperId: string;
+  paperId?: string;
+  venueSlug?: string;
 }
 
-export function ShareButtons({ title, paperId }: ShareButtonsProps) {
+export function ShareButtons({ title, paperId, venueSlug }: ShareButtonsProps) {
   const [copied, setCopied] = useState(false);
+  const [canNativeShare, setCanNativeShare] = useState(false);
 
-  const getUrl = () =>
-    typeof window !== "undefined"
-      ? `${window.location.origin}/paper/${paperId}`
-      : `https://rubbishreview.org/paper/${paperId}`;
+  useEffect(() => {
+    setCanNativeShare(typeof navigator.share === "function");
+  }, []);
+
+  const getUrl = () => {
+    if (typeof window === "undefined") return "";
+    if (paperId) return `${window.location.origin}/paper/${paperId}`;
+    if (venueSlug) return `${window.location.origin}/venue/${venueSlug}`;
+    return window.location.href;
+  };
 
   const shareText = `${title} — RubbishReview`;
 
@@ -22,6 +30,21 @@ export function ShareButtons({ title, paperId }: ShareButtonsProps) {
     await navigator.clipboard.writeText(getUrl());
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
+  };
+
+  const handleNativeShare = async () => {
+    const url = getUrl();
+    if (navigator.share) {
+      try {
+        await navigator.share({
+          title,
+          text: shareText,
+          url,
+        });
+      } catch {
+        // User cancelled or error - ignore
+      }
+    }
   };
 
   const twitterUrl = () =>
@@ -39,6 +62,13 @@ export function ShareButtons({ title, paperId }: ShareButtonsProps) {
 
   return (
     <div className="flex items-center gap-1 flex-wrap">
+      {/* Native Share button (mobile/modern browsers) */}
+      {canNativeShare && (
+        <button onClick={handleNativeShare} className={btnClass} style={btnStyle}>
+          <Share2 className="h-3 w-3 inline mr-1" />
+          Share
+        </button>
+      )}
       <a href={twitterUrl()} target="_blank" rel="noopener noreferrer" className={btnClass} style={btnStyle}>
         𝕏 Twitter
       </a>

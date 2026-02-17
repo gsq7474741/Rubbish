@@ -27,6 +27,7 @@ export const CONTENT_TYPES = {
   pdf: "PDF",
   markdown: "Markdown",
   image: "图片",
+  word: "Word",
 } as const;
 
 export const REACTIONS = ["🗑️", "💩", "🔥", "😂", "🏆", "♻️"] as const;

@@ -1,0 +1,2 @@
+-- RPC functions are already created in fix_security_issues migration.
+-- This migration is kept for version tracking consistency with remote.

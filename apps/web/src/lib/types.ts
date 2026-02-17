@@ -8,6 +8,7 @@ export interface Profile {
   research_field: string | null;
   title: string | null;
   karma: number;
+  role: "user" | "venue_editor" | "content_admin" | "system_admin";
   created_at: string;
   updated_at: string;
 }
@@ -45,7 +46,7 @@ export interface Paper {
   title: string;
   abstract: string | null;
   keywords: string[];
-  content_type: "latex" | "pdf" | "markdown" | "image";
+  content_type: "latex" | "pdf" | "markdown" | "image" | "word";
   content_markdown: string | null;
   content_latex: string | null;
   latex_template: string | null;
@@ -68,6 +69,9 @@ export interface Paper {
   avg_uselessness_score: number;
   avg_entertainment_score: number;
   hot_score: number;
+  revision_number: number;
+  previous_version_id: string | null;
+  supplementary_urls: Record<string, string>[];
   created_at: string;
   updated_at: string;
   // Joined fields
@@ -150,7 +154,7 @@ export interface Reaction {
 export interface Notification {
   id: string;
   user_id: string;
-  type: "new_review" | "new_comment" | "decision" | "achievement" | "mention";
+  type: "new_review" | "new_comment" | "decision" | "achievement" | "mention" | "submission";
   title: string;
   body: string | null;
   link: string | null;

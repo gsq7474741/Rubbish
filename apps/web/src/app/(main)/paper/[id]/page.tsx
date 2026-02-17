@@ -12,6 +12,7 @@ import { BibtexButton } from "@/components/forum/BibtexModal";
 import { ReplyTree } from "@/components/forum/ReplyTree";
 import { ShareButtons } from "@/components/forum/ShareButtons";
 import { anonymizeProfile, anonymizeList, hashUserId } from "@/lib/anonymize";
+import { ReportButton } from "@/components/community/ReportButton";
 
 export async function generateMetadata({ params }: { params: Promise<{ id: string }> }): Promise<Metadata> {
   const { id } = await params;
@@ -170,6 +171,16 @@ export default async function PaperPage({ params }: { params: Promise<{ id: stri
           <li className="before:content-['·'] before:mr-2">{paper.view_count} Views</li>
         </ul>
 
+        {/* Revision info */}
+        {(paper.revision_number > 1 || paper.previous_version_id) && (
+          <div className="text-xs mb-2 px-2 py-1 border border-[rgba(0,0,0,0.1)] inline-block" style={{ backgroundColor: "var(--or-sandy)" }}>
+            Revision {paper.revision_number}
+            {paper.previous_version_id && (
+              <> · <Link href={`/paper/${paper.previous_version_id}`} style={{ color: "var(--or-medium-blue)" }} className="hover:underline">Previous version</Link></>
+            )}
+          </div>
+        )}
+
         {/* Keywords */}
         {paper.keywords && paper.keywords.length > 0 && (
           <div className="flex flex-wrap gap-2 mb-4">
@@ -198,12 +209,35 @@ export default async function PaperPage({ params }: { params: Promise<{ id: stri
               className="text-xs border border-[#ccc] px-2 py-1 hover:bg-[#f5f5f5]"
               style={{ borderRadius: 0, color: "var(--or-medium-blue)" }}
             >
-              Download PDF
+              {paper.content_type === "word" ? "Download Word" : "Download PDF"}
             </a>
           )}
         </div>
-        <div className="mb-4">
+        {/* Supplementary Materials */}
+        {paper.supplementary_urls && Array.isArray(paper.supplementary_urls) && paper.supplementary_urls.length > 0 && (
+          <div className="mb-2">
+            <strong className="text-xs" style={{ color: "var(--or-green)" }}>Supplementary Materials:</strong>
+            <div className="flex flex-wrap gap-2 mt-1">
+              {paper.supplementary_urls.map((s, i) => (
+                <a
+                  key={i}
+                  href={s.url || (s as unknown as string)}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-1 text-xs border border-[#ccc] px-2 py-1 hover:bg-[#f5f5f5]"
+                  style={{ borderRadius: 0, color: "var(--or-medium-blue)" }}
+                >
+                  📎 {s.filename || `File ${i + 1}`}
+                  {s.size && <span className="text-[var(--or-subtle-gray)]">({(Number(s.size) / 1024 / 1024).toFixed(1)}MB)</span>}
+                </a>
+              ))}
+            </div>
+          </div>
+        )}
+
+        <div className="flex items-center gap-4 mb-4">
           <ShareButtons title={paper.title} paperId={id} />
+          <ReportButton targetType="paper" targetId={id} />
         </div>
 
         <hr className="border-0 border-t border-[rgba(0,0,0,0.1)] my-6" />

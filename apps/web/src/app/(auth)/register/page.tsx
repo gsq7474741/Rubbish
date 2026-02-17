@@ -8,6 +8,7 @@ export default function RegisterPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [username, setUsername] = useState("");
+  const [inviteCode, setInviteCode] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
@@ -18,7 +19,7 @@ export default function RegisterPage() {
     setError(null);
 
     const supabase = createClient();
-    const { error } = await supabase.auth.signUp({
+    const { data: signUpData, error } = await supabase.auth.signUp({
       email,
       password,
       options: {
@@ -30,6 +31,15 @@ export default function RegisterPage() {
       setError(error.message);
       setLoading(false);
       return;
+    }
+
+    // Store invite code for verification after email confirmation (in auth callback)
+    if (inviteCode.trim()) {
+      try {
+        localStorage.setItem("pending_invite_code", inviteCode.trim());
+      } catch {
+        // localStorage unavailable — ignore
+      }
     }
 
     setSuccess(true);
@@ -105,6 +115,19 @@ export default function RegisterPage() {
             className="w-full h-[38px] px-3 text-sm border border-[#ccc] focus:outline-none focus:border-[var(--or-green)]"
             style={{ borderRadius: 0 }}
           />
+        </div>
+        <div>
+          <label htmlFor="inviteCode" className="block text-sm font-bold mb-1" style={{ color: "var(--or-dark-blue)" }}>Invite Code (optional)</label>
+          <input
+            id="inviteCode"
+            type="text"
+            placeholder="e.g. RR-XXXX-XXXX"
+            value={inviteCode}
+            onChange={(e) => setInviteCode(e.target.value)}
+            className="w-full h-[38px] px-3 text-sm border border-[#ccc] focus:outline-none focus:border-[var(--or-green)]"
+            style={{ borderRadius: 0 }}
+          />
+          <p className="text-xs text-[var(--or-subtle-gray)] mt-1">Have an invite code? Enter it here.</p>
         </div>
         {error && <p className="text-sm" style={{ color: "var(--destructive)" }}>{error}</p>}
         <button

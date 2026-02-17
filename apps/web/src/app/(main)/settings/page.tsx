@@ -150,8 +150,89 @@ export default function SettingsPage() {
           </button>
         </form>
 
+        <hr className="border-0 border-t border-[rgba(0,0,0,0.1)] my-6" />
+
+        {/* Invite Codes Section */}
+        <InviteCodesSection />
+
         <div className="my-8" />
       </div>
+    </div>
+  );
+}
+
+function InviteCodesSection() {
+  const [codes, setCodes] = useState<{ code: string; used_by: string | null; used_at: string | null; expires_at: string | null; created_at: string }[]>([]);
+  const [loadingCodes, setLoadingCodes] = useState(true);
+  const [generating, setGenerating] = useState(false);
+  const [codeError, setCodeError] = useState<string | null>(null);
+
+  useEffect(() => {
+    fetch("/api/invite-codes")
+      .then((r) => r.json())
+      .then((res) => setCodes(res.data || []))
+      .catch(() => {})
+      .finally(() => setLoadingCodes(false));
+  }, []);
+
+  async function generateCode() {
+    setGenerating(true);
+    setCodeError(null);
+    try {
+      const res = await fetch("/api/invite-codes", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({}),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setCodeError(data.error || "Failed to generate code");
+      } else {
+        setCodes((prev) => [data.data, ...prev]);
+      }
+    } catch {
+      setCodeError("Network error");
+    }
+    setGenerating(false);
+  }
+
+  return (
+    <div>
+      <h2 className="text-lg font-semibold mb-2" style={{ color: "var(--or-dark-blue)" }}>Invite Codes</h2>
+      <p className="text-xs text-[var(--or-subtle-gray)] mb-4">Generate invite codes to share with friends. You can have up to 5 unused codes at a time.</p>
+
+      <button
+        onClick={generateCode}
+        disabled={generating}
+        className="h-[34px] px-4 text-sm text-white border-0 cursor-pointer disabled:opacity-50 mb-4"
+        style={{ backgroundColor: "var(--or-green)", borderRadius: 0 }}
+      >
+        {generating ? "Generating..." : "Generate New Code"}
+      </button>
+
+      {codeError && <p className="text-xs mb-2" style={{ color: "var(--destructive)" }}>{codeError}</p>}
+
+      {loadingCodes ? (
+        <p className="text-xs text-[var(--or-subtle-gray)]">Loading codes...</p>
+      ) : codes.length === 0 ? (
+        <p className="text-xs text-[var(--or-subtle-gray)]">No invite codes yet. Generate one above!</p>
+      ) : (
+        <div className="space-y-2">
+          {codes.map((c) => (
+            <div key={c.code} className="flex items-center gap-3 p-3 border border-[rgba(0,0,0,0.1)] text-sm" style={{ backgroundColor: c.used_by ? "var(--or-bg-gray)" : "white" }}>
+              <code className="font-mono font-bold" style={{ color: c.used_by ? "var(--or-subtle-gray)" : "var(--or-green)" }}>{c.code}</code>
+              <span className="flex-1" />
+              {c.used_by ? (
+                <span className="text-xs text-[var(--or-subtle-gray)]">Used {c.used_at ? new Date(c.used_at).toLocaleDateString() : ""}</span>
+              ) : c.expires_at && new Date(c.expires_at) < new Date() ? (
+                <span className="text-xs" style={{ color: "var(--destructive)" }}>Expired</span>
+              ) : (
+                <span className="text-xs" style={{ color: "var(--or-green)" }}>Available</span>
+              )}
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }

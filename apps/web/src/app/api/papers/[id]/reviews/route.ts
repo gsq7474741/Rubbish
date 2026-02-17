@@ -190,5 +190,11 @@ export async function POST(
     });
   } catch { /* ignore */ }
 
+  // Check achievements for reviewer (best-effort)
+  try {
+    const { checkAchievements } = await import("@/lib/achievements");
+    await checkAchievements(supabase, user.id);
+  } catch { /* ignore */ }
+
   return NextResponse.json({ data }, { status: 201 });
 }

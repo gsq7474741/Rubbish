@@ -1,10 +1,11 @@
 "use client";
 
-import Link from "next/link";
 import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import type { Notification } from "@/lib/types";
 
 export default function NotificationsPage() {
+  const router = useRouter();
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -18,6 +19,14 @@ export default function NotificationsPage() {
       .catch(() => setLoading(false));
   }, []);
 
+  async function markAsRead(ids: string[]) {
+    await fetch("/api/notifications/read", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ ids }),
+    });
+  }
+
   async function markAllRead() {
     await fetch("/api/notifications/read", {
       method: "PATCH",
@@ -25,6 +34,18 @@ export default function NotificationsPage() {
       body: JSON.stringify({}),
     });
     setNotifications((prev) => prev.map((n) => ({ ...n, is_read: true })));
+  }
+
+  async function handleClick(n: Notification) {
+    // Mark as read immediately
+    if (!n.is_read) {
+      setNotifications((prev) => prev.map((x) => x.id === n.id ? { ...x, is_read: true } : x));
+      markAsRead([n.id]);
+    }
+    // Navigate if link exists
+    if (n.link) {
+      router.push(n.link);
+    }
   }
 
   return (
@@ -48,10 +69,10 @@ export default function NotificationsPage() {
         ) : (
           <div>
             {notifications.map((n) => (
-              <Link
+              <div
                 key={n.id}
-                href={n.link || "#"}
-                className={`block py-3 border-b border-[rgba(0,0,0,0.1)] hover:bg-[var(--or-sandy)] transition-colors ${n.is_read ? "opacity-60" : ""}`}
+                onClick={() => handleClick(n)}
+                className={`block py-3 border-b border-[rgba(0,0,0,0.1)] hover:bg-[var(--or-sandy)] transition-colors cursor-pointer ${n.is_read ? "opacity-60" : ""}`}
               >
                 <div className="flex items-start gap-3">
                   {!n.is_read && (
@@ -64,9 +85,12 @@ export default function NotificationsPage() {
                     <p className="text-xs text-[var(--or-light-gray)] mt-1">
                       {new Date(n.created_at).toLocaleDateString("en-US", { year: "numeric", month: "short", day: "numeric" })}
                     </p>
+                    {!n.link && (
+                      <p className="text-xs text-[var(--or-light-gray)] italic mt-0.5">No details available</p>
+                    )}
                   </div>
                 </div>
-              </Link>
+              </div>
             ))}
           </div>
         )}

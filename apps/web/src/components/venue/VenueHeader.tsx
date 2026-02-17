@@ -2,6 +2,7 @@ import Link from "next/link";
 import type { Venue } from "@/lib/types";
 import { MarkdownRenderer } from "@/components/ui/MarkdownRenderer";
 import { Globe, Mail, Calendar, MapPin } from "lucide-react";
+import { ShareButtons } from "@/components/forum/ShareButtons";
 
 export function VenueHeader({ venue }: { venue: Venue }) {
   const deadlineDate = venue.deadline ? new Date(venue.deadline) : null;
@@ -92,6 +93,11 @@ export function VenueHeader({ venue }: { venue: Venue }) {
           </li>
         )}
       </ul>
+
+      {/* Share buttons */}
+      <div className="mb-4">
+        <ShareButtons title={venue.name} venueSlug={venue.slug} />
+      </div>
 
       {/* Instructions (Markdown) */}
       {venue.instructions && (

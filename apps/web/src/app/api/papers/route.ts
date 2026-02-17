@@ -53,10 +53,50 @@ export async function POST(request: NextRequest) {
   }
 
   const body = await request.json();
-  const { title, abstract, keywords, content_type, content_markdown, pdf_url, image_urls, supplementary_urls, venue_id, review_mode } = body;
+  const { title, abstract, keywords, content_type, content_markdown, pdf_url, image_urls, supplementary_urls, venue_id, review_mode, editor_invite_code } = body;
 
   if (!title || !content_type || !venue_id) {
     return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
+  }
+
+  // Instant mode requires a valid editor invite code
+  if (review_mode === "instant") {
+    if (!editor_invite_code?.trim()) {
+      return NextResponse.json({ error: "Instant publish requires an editor invite code" }, { status: 400 });
+    }
+
+    const { data: inviteCode } = await supabase
+      .from("editor_invite_codes")
+      .select("*")
+      .eq("code", editor_invite_code.trim().toUpperCase())
+      .eq("venue_id", venue_id)
+      .eq("purpose", "instant_publish")
+      .single();
+
+    if (!inviteCode) {
+      return NextResponse.json({ error: "Invalid editor invite code for this venue" }, { status: 400 });
+    }
+
+    if (inviteCode.used_count >= inviteCode.max_uses) {
+      return NextResponse.json({ error: "This invite code has been fully used" }, { status: 400 });
+    }
+
+    if (inviteCode.expires_at && new Date(inviteCode.expires_at) < new Date()) {
+      return NextResponse.json({ error: "This invite code has expired" }, { status: 400 });
+    }
+
+    // Atomically increment used_count with a guard to prevent race conditions
+    const { data: updated, error: updateErr } = await supabase
+      .from("editor_invite_codes")
+      .update({ used_count: inviteCode.used_count + 1 })
+      .eq("id", inviteCode.id)
+      .lt("used_count", inviteCode.max_uses)
+      .select("id")
+      .maybeSingle();
+
+    if (updateErr || !updated) {
+      return NextResponse.json({ error: "This invite code has been fully used" }, { status: 400 });
+    }
   }
 
   const status = review_mode === "instant" ? "published" : "submitted";
@@ -105,11 +145,60 @@ export async function POST(request: NextRequest) {
     await createNotification({
       supabase,
       userId: user.id,
-      type: "new_comment",
+      type: "submission",
       title: "Paper submitted successfully",
       body: `Your paper "${title}" has been submitted and is ${status === "published" ? "published" : "awaiting review"}.`,
       link: `/paper/${data.id}`,
     });
+  } catch { /* ignore */ }
+
+  // Blind mode: auto-assign reviewers from venue editors pool
+  if (review_mode === "blind") {
+    try {
+      const { createNotification } = await import("@/lib/notify");
+      // Get all venue editors who are not the author
+      const { data: editors } = await supabase
+        .from("venue_editors")
+        .select("user_id")
+        .eq("venue_id", venue_id)
+        .neq("user_id", user.id);
+
+      if (editors && editors.length > 0) {
+        // Fisher-Yates shuffle and pick up to 2 reviewers
+        const shuffled = [...editors];
+        for (let i = shuffled.length - 1; i > 0; i--) {
+          const j = Math.floor(Math.random() * (i + 1));
+          [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+        }
+        const assignees = shuffled.slice(0, Math.min(2, shuffled.length));
+
+        for (const assignee of assignees) {
+          // Create review assignment record
+          await supabase.from("review_assignments").insert({
+            paper_id: data.id,
+            reviewer_id: assignee.user_id,
+            assigned_by: "system",
+            status: "pending",
+          }).select().maybeSingle();
+
+          // Notify the assigned reviewer
+          await createNotification({
+            supabase,
+            userId: assignee.user_id,
+            type: "new_review",
+            title: "You have been assigned a paper to review",
+            body: `A paper "${title}" has been assigned to you for blind review.`,
+            link: `/paper/${data.id}`,
+          });
+        }
+      }
+    } catch { /* best-effort */ }
+  }
+
+  // Check achievements (best-effort)
+  try {
+    const { checkAchievements } = await import("@/lib/achievements");
+    await checkAchievements(supabase, user.id);
   } catch { /* ignore */ }
 
   return NextResponse.json({ data }, { status: 201 });

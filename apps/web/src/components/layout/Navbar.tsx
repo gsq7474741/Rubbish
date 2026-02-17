@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { Search, Menu, X } from "lucide-react";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { cn } from "@/lib/utils";
 import { createClient } from "@/lib/supabase/client";
 
@@ -19,38 +19,67 @@ export function Navbar() {
   const router = useRouter();
   const [mobileOpen, setMobileOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
-  const [user, setUser] = useState<null | { username: string; display_name: string | null }>(null);
+  const [user, setUser] = useState<null | { username: string; display_name: string | null; avatar_url: string | null; role?: string }>(null);
   const [unreadCount, setUnreadCount] = useState(0);
 
+  const loadProfile = useCallback(async () => {
+    try {
+      const res = await fetch("/api/me");
+      const data = await res.json();
+      if (data.user?.anonId) {
+        setUser({
+          username: data.user.username || data.user.anonId,
+          display_name: data.user.displayName || data.user.username || data.user.anonId,
+          avatar_url: data.user.avatarUrl || null,
+          role: data.user.role,
+        });
+        setUnreadCount(data.user.unreadCount || 0);
+
+        // Verify pending invite code from registration (best-effort)
+        try {
+          const pendingCode = localStorage.getItem("pending_invite_code");
+          if (pendingCode) {
+            localStorage.removeItem("pending_invite_code");
+            fetch("/api/invite-codes/verify", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ code: pendingCode }),
+            }).catch(() => {});
+          }
+        } catch {
+          // localStorage unavailable — ignore
+        }
+      } else {
+        setUser(null);
+      }
+    } catch {
+      // fallback: not logged in
+    }
+  }, []);
+
+  // Auth state subscription — only once
   useEffect(() => {
     const supabase = createClient();
 
-    async function loadAnonId() {
-      try {
-        const res = await fetch("/api/me");
-        const data = await res.json();
-        if (data.user?.anonId) {
-          setUser({ username: data.user.anonId, display_name: data.user.anonId });
-          setUnreadCount(data.user.unreadCount || 0);
-        }
-      } catch {
-        // fallback: not logged in
-      }
-    }
-
     supabase.auth.getUser().then(({ data: { user: authUser } }) => {
-      if (authUser) loadAnonId();
+      if (authUser) loadProfile();
     });
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       if (session?.user) {
-        loadAnonId();
+        loadProfile();
       } else {
         setUser(null);
       }
     });
     return () => subscription.unsubscribe();
-  }, []);
+  }, [loadProfile]);
+
+  // Refresh profile data (e.g. unread count) on route change
+  useEffect(() => {
+    if (user) loadProfile();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pathname]);
 
   function handleSearch(e: React.FormEvent) {
     e.preventDefault();
@@ -63,9 +92,9 @@ export function Navbar() {
     <nav className="sticky top-0 z-50 w-full" style={{ backgroundColor: "var(--or-green)", borderColor: "var(--or-green-dark)" }}>
       <div className="container mx-auto flex h-[50px] items-center px-4">
         {/* Brand */}
-        <Link href="/" className="flex items-center gap-1 mr-6 shrink-0">
-          <span className="text-[#b8b8b8] text-[1.375rem] font-normal">
-            <strong className="text-white">RubbishReview</strong>
+        <Link href="/" className="flex items-center mr-6 shrink-0">
+          <span className="text-[1.375rem]">
+            <strong className="text-white font-bold">RubbishReview</strong><span className="text-[#b8b8b8] font-normal">.org</span>
           </span>
         </Link>
 
@@ -95,9 +124,14 @@ export function Navbar() {
                 {user.display_name || user.username}
               </button>
               <div className="absolute right-0 top-full hidden group-hover:block bg-white border border-[rgba(0,0,0,0.1)] shadow-md min-w-[160px] z-50">
-                <Link href="/dashboard" className="block px-5 py-1 text-sm text-[var(--or-dark-blue)] hover:bg-[var(--or-bg-gray)]">
-                  My Dashboard
+                <Link href={`/profile/${user.username}`} className="block px-5 py-1 text-sm text-[var(--or-dark-blue)] hover:bg-[var(--or-bg-gray)]">
+                  My Profile
                 </Link>
+                {(user.role === "content_admin" || user.role === "system_admin") ? (
+                  <Link href="/admin" className="block px-5 py-1 text-sm font-medium hover:bg-[var(--or-bg-gray)]" style={{ color: "var(--or-medium-blue)" }}>
+                    Admin Dashboard
+                  </Link>
+                ) : null}
                 <Link href="/settings" className="block px-5 py-1 text-sm text-[var(--or-dark-blue)] hover:bg-[var(--or-bg-gray)]">
                   Settings
                 </Link>
@@ -183,8 +217,16 @@ export function Navbar() {
             ))}
             {user ? (
               <>
-                <Link href="/dashboard" className="block py-2 text-white text-base" onClick={() => setMobileOpen(false)}>
-                  My Dashboard
+                <Link href={`/profile/${user.username}`} className="block py-2 text-white text-base" onClick={() => setMobileOpen(false)}>
+                  My Profile
+                </Link>
+                {(user.role === "content_admin" || user.role === "system_admin") && (
+                  <Link href="/admin" className="block py-2 text-white text-base" onClick={() => setMobileOpen(false)}>
+                    Admin Dashboard
+                  </Link>
+                )}
+                <Link href="/settings" className="block py-2 text-white text-base" onClick={() => setMobileOpen(false)}>
+                  Settings
                 </Link>
                 <button
                   onClick={async () => { const supabase = createClient(); await supabase.auth.signOut(); setUser(null); router.push('/'); router.refresh(); }}

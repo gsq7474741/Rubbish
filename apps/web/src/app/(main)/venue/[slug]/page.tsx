@@ -143,6 +143,24 @@ export default async function VenuePage({
     </div>
   );
 
+  // Fetch sub-venues (child venues)
+  const { data: subVenues } = await supabase
+    .from("venues")
+    .select("id, slug, name, subtitle, paper_count, accepting_submissions")
+    .eq("parent_venue_id", venue.id)
+    .order("name", { ascending: true });
+
+  // Fetch parent venue if this is a sub-venue
+  let parentVenue: { slug: string; name: string } | null = null;
+  if (venue.parent_venue_id) {
+    const { data: pv } = await supabase
+      .from("venues")
+      .select("slug, name")
+      .eq("id", venue.parent_venue_id)
+      .single();
+    parentVenue = pv;
+  }
+
   // Build about tab content
   const aboutContent = (
     <div className="text-sm space-y-4" style={{ color: "var(--or-dark-blue)" }}>
@@ -160,6 +178,12 @@ export default async function VenuePage({
       <div className="py-2 border-b border-[#d0d0d0] mb-4" style={{ backgroundColor: "var(--or-bg-gray)", marginLeft: "-1rem", marginRight: "-1rem", paddingLeft: "1rem", paddingRight: "1rem" }}>
         <span className="text-sm text-[var(--or-subtle-gray)]">
           <Link href="/venues" style={{ color: "var(--or-medium-blue)" }} className="hover:underline">All Venues</Link>
+          {parentVenue && (
+            <>
+              {" › "}
+              <Link href={`/venue/${parentVenue.slug}`} style={{ color: "var(--or-medium-blue)" }} className="hover:underline">{parentVenue.name}</Link>
+            </>
+          )}
         </span>
       </div>
 
@@ -172,10 +196,66 @@ export default async function VenuePage({
         {/* Submission Button */}
         <SubmissionButton venue={venue} />
 
-        {/* Tabs: Submissions | Activity | About */}
+        {/* Manage Editors link (only for creator/editors) */}
+        {await (async () => {
+          if (!currentUser) return null;
+          const isCreator = venue.created_by === currentUser.id;
+          if (isCreator) {
+            return (
+              <div className="mb-4">
+                <Link href={`/venue/${slug}/manage`} className="text-xs hover:underline" style={{ color: "var(--or-medium-blue)" }}>
+                  ⚙ Manage Editors
+                </Link>
+              </div>
+            );
+          }
+          const { data: editorCheck } = await supabase
+            .from("venue_editors")
+            .select("role")
+            .eq("venue_id", venue.id)
+            .eq("user_id", currentUser.id)
+            .single();
+          if (editorCheck) {
+            return (
+              <div className="mb-4">
+                <Link href={`/venue/${slug}/manage`} className="text-xs hover:underline" style={{ color: "var(--or-medium-blue)" }}>
+                  ⚙ Manage Editors
+                </Link>
+              </div>
+            );
+          }
+          return null;
+        })()}
+
+        {/* Tabs: Submissions | Sub-Venues? | Activity | About */}
         <VenueTabs
           tabs={[
             { id: "submissions", label: `Submissions (${count || 0})`, content: submissionsContent },
+            ...((subVenues && subVenues.length > 0) ? [{
+              id: "sub-venues",
+              label: `Sub-Venues (${subVenues.length})`,
+              content: (
+                <div className="space-y-2">
+                  {subVenues.map((sv) => (
+                    <Link
+                      key={sv.id}
+                      href={`/venue/${sv.slug}`}
+                      className="block p-4 border border-[rgba(0,0,0,0.1)] bg-white hover:shadow-sm transition-shadow"
+                      style={{ borderRadius: 0 }}
+                    >
+                      <h3 className="text-sm font-semibold" style={{ color: "var(--or-dark-blue)" }}>{sv.name}</h3>
+                      {sv.subtitle && <p className="text-xs text-[var(--or-subtle-gray)] mt-1">{sv.subtitle}</p>}
+                      <div className="flex gap-3 mt-2 text-xs text-[var(--or-subtle-gray)]">
+                        <span>{sv.paper_count || 0} papers</span>
+                        <span style={{ color: sv.accepting_submissions ? "var(--or-green)" : "var(--destructive)" }}>
+                          {sv.accepting_submissions ? "Open" : "Closed"}
+                        </span>
+                      </div>
+                    </Link>
+                  ))}
+                </div>
+              ),
+            }] : []),
             { id: "activity", label: "Activity", content: <ActivityFeed venueId={venue.id} /> },
             { id: "about", label: "About", content: aboutContent },
           ]}

@@ -42,6 +42,13 @@ export default function VenueSubmitPage() {
   const [reviewMode, setReviewMode] = useState<string>("open");
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
+  const [editorInviteCode, setEditorInviteCode] = useState("");
+
+  // Co-authors state
+  const [authors, setAuthors] = useState<{ name: string; institution: string; email: string; is_corresponding: boolean }[]>([]);
+  const [authorName, setAuthorName] = useState("");
+  const [authorInst, setAuthorInst] = useState("");
+  const [authorEmail, setAuthorEmail] = useState("");
 
   // File upload state
   const [pdfFile, setPdfFile] = useState<UploadedFile | null>(null);
@@ -78,6 +85,20 @@ export default function VenueSubmitPage() {
     setUploading(true);
     const result = await uploadFile(file, "paper");
     if (result) setPdfFile(result);
+    setUploading(false);
+  }, [uploadFile]);
+
+  // Word file state
+  const [wordFile, setWordFile] = useState<UploadedFile | null>(null);
+  const wordInputRef = useRef<HTMLInputElement>(null);
+
+  const handleWordUpload = useCallback(async (file: File) => {
+    const validTypes = ["application/vnd.openxmlformats-officedocument.wordprocessingml.document", "application/msword"];
+    if (!validTypes.includes(file.type)) { setUploadError("Only Word (.doc/.docx) files are accepted"); return; }
+    if (file.size > 50 * 1024 * 1024) { setUploadError("File too large (max 50MB)"); return; }
+    setUploading(true);
+    const result = await uploadFile(file, "paper");
+    if (result) setWordFile(result);
     setUploading(false);
   }, [uploadFile]);
 
@@ -143,7 +164,12 @@ export default function VenueSubmitPage() {
     if (step === 1) {
       if (contentType === "markdown") return !!contentMarkdown;
       if (contentType === "pdf") return !!pdfFile;
+      if (contentType === "word") return !!wordFile;
       if (contentType === "image") return imageFiles.length > 0;
+      return true;
+    }
+    if (step === 2) {
+      if (reviewMode === "instant") return !!editorInviteCode.trim();
       return true;
     }
     return true;
@@ -281,6 +307,69 @@ export default function VenueSubmitPage() {
                 ))}
               </div>
             </div>
+
+            {/* Co-Authors */}
+            <div>
+              <label className="block text-sm font-bold mb-1" style={{ color: "var(--or-dark-blue)" }}>Co-Authors (optional)</label>
+              <p className="text-xs text-[var(--or-subtle-gray)] mb-2">Add co-authors for this paper. You are automatically listed as the submitting author.</p>
+              <div className="flex gap-2 flex-wrap">
+                <input
+                  placeholder="Name *"
+                  value={authorName}
+                  onChange={(e) => setAuthorName(e.target.value)}
+                  className="flex-1 min-w-[120px] h-[34px] px-2 text-sm border border-[#ccc] focus:outline-none focus:border-[var(--or-green)]"
+                  style={{ borderRadius: 0 }}
+                />
+                <input
+                  placeholder="Institution"
+                  value={authorInst}
+                  onChange={(e) => setAuthorInst(e.target.value)}
+                  className="flex-1 min-w-[120px] h-[34px] px-2 text-sm border border-[#ccc] focus:outline-none focus:border-[var(--or-green)]"
+                  style={{ borderRadius: 0 }}
+                />
+                <input
+                  placeholder="Email"
+                  value={authorEmail}
+                  onChange={(e) => setAuthorEmail(e.target.value)}
+                  className="w-[160px] h-[34px] px-2 text-sm border border-[#ccc] focus:outline-none focus:border-[var(--or-green)]"
+                  style={{ borderRadius: 0 }}
+                />
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (authorName.trim()) {
+                      setAuthors([...authors, { name: authorName.trim(), institution: authorInst.trim(), email: authorEmail.trim(), is_corresponding: false }]);
+                      setAuthorName(""); setAuthorInst(""); setAuthorEmail("");
+                    }
+                  }}
+                  className="h-[34px] px-3 text-sm border border-[#ccc] bg-white hover:bg-[#f5f5f5] cursor-pointer"
+                  style={{ borderRadius: 0 }}
+                >
+                  Add
+                </button>
+              </div>
+              {authors.length > 0 && (
+                <div className="mt-2 space-y-1">
+                  {authors.map((a, i) => (
+                    <div key={i} className="flex items-center gap-2 text-xs p-2 border border-[rgba(0,0,0,0.1)]">
+                      <span className="font-semibold" style={{ color: "var(--or-dark-blue)" }}>{a.name}</span>
+                      {a.institution && <span className="text-[var(--or-subtle-gray)]">· {a.institution}</span>}
+                      {a.email && <span className="text-[var(--or-subtle-gray)]">· {a.email}</span>}
+                      <label className="ml-auto flex items-center gap-1 cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={a.is_corresponding}
+                          onChange={() => setAuthors(authors.map((au, j) => j === i ? { ...au, is_corresponding: !au.is_corresponding } : au))}
+                          className="accent-[var(--or-green)]"
+                        />
+                        <span>Corresponding</span>
+                      </label>
+                      <X className="h-3 w-3 cursor-pointer text-[var(--or-subtle-gray)] hover:text-[var(--destructive)]" onClick={() => setAuthors(authors.filter((_, j) => j !== i))} />
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
           </div>
         )}
 
@@ -297,6 +386,7 @@ export default function VenueSubmitPage() {
               >
                 <option value="markdown">Markdown</option>
                 <option value="pdf">PDF Upload</option>
+                <option value="word">Word (.docx) Upload</option>
                 <option value="latex">LaTeX (Online Editor)</option>
                 <option value="image">Images</option>
               </select>
@@ -361,6 +451,57 @@ export default function VenueSubmitPage() {
                       {uploading ? "Uploading..." : "Drag and drop PDF here, or click to upload"}
                     </p>
                     <p className="text-xs text-[var(--or-subtle-gray)] mt-1">Max 50MB</p>
+                  </div>
+                )}
+              </div>
+            )}
+            {contentType === "word" && (
+              <div>
+                <input
+                  ref={wordInputRef}
+                  type="file"
+                  accept=".doc,.docx,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+                  className="hidden"
+                  onChange={(e) => {
+                    const f = e.target.files?.[0];
+                    if (f) handleWordUpload(f);
+                  }}
+                />
+                {wordFile ? (
+                  <div className="flex items-center gap-3 p-4 border border-[var(--or-green)] bg-[var(--accent)]">
+                    <CheckCircle className="h-5 w-5 flex-shrink-0" style={{ color: "var(--or-green)" }} />
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-semibold truncate" style={{ color: "var(--or-dark-blue)" }}>{wordFile.filename}</p>
+                      <p className="text-xs text-[var(--or-subtle-gray)]">{formatSize(wordFile.size)}</p>
+                    </div>
+                    <button
+                      onClick={() => { setWordFile(null); if (wordInputRef.current) wordInputRef.current.value = ""; }}
+                      className="text-xs border border-[#ccc] px-2 py-1 bg-white hover:bg-[#f5f5f5] cursor-pointer"
+                      style={{ borderRadius: 0 }}
+                    >
+                      Replace
+                    </button>
+                  </div>
+                ) : (
+                  <div
+                    className="border-2 border-dashed border-[#ccc] p-8 text-center cursor-pointer hover:border-[var(--or-green)] transition-colors"
+                    onClick={() => wordInputRef.current?.click()}
+                    onDragOver={(e) => { e.preventDefault(); e.stopPropagation(); }}
+                    onDrop={(e) => {
+                      e.preventDefault(); e.stopPropagation();
+                      const f = e.dataTransfer.files[0];
+                      if (f) handleWordUpload(f);
+                    }}
+                  >
+                    {uploading ? (
+                      <Loader2 className="h-8 w-8 mx-auto mb-2 animate-spin text-[var(--or-green)]" />
+                    ) : (
+                      <FileText className="h-8 w-8 mx-auto mb-2 text-[var(--or-subtle-gray)]" />
+                    )}
+                    <p className="text-sm text-[var(--or-subtle-gray)]">
+                      {uploading ? "Uploading..." : "Drag and drop Word file here, or click to upload"}
+                    </p>
+                    <p className="text-xs text-[var(--or-subtle-gray)] mt-1">.doc / .docx — Max 50MB</p>
                   </div>
                 )}
               </div>
@@ -476,6 +617,24 @@ export default function VenueSubmitPage() {
                 <p className="text-xs text-[var(--or-subtle-gray)] mt-1">{mode.description}</p>
               </div>
             ))}
+
+            {/* Editor invite code for instant mode */}
+            {reviewMode === "instant" && (
+              <div className="mt-4 p-3 border border-[rgba(0,0,0,0.1)]" style={{ backgroundColor: "var(--or-sandy)" }}>
+                <label className="block text-sm font-bold mb-1" style={{ color: "var(--or-dark-blue)" }}>Editor Invite Code *</label>
+                <p className="text-xs text-[var(--or-subtle-gray)] mb-2">
+                  Instant publish requires an invite code from a venue editor. Contact the venue editors to obtain one.
+                </p>
+                <input
+                  type="text"
+                  placeholder="e.g. ED-XXXX-XXXX"
+                  value={editorInviteCode}
+                  onChange={(e) => setEditorInviteCode(e.target.value)}
+                  className="w-full h-[38px] px-3 text-sm border border-[#ccc] focus:outline-none focus:border-[var(--or-green)]"
+                  style={{ borderRadius: 0 }}
+                />
+              </div>
+            )}
           </div>
         )}
 
@@ -492,6 +651,9 @@ export default function VenueSubmitPage() {
               <div><strong style={{ color: "var(--or-green)" }}>Review Mode:</strong> {REVIEW_MODES[reviewMode as keyof typeof REVIEW_MODES]?.label}</div>
               {pdfFile && (
                 <div><strong style={{ color: "var(--or-green)" }}>PDF:</strong> {pdfFile.filename} ({formatSize(pdfFile.size)})</div>
+              )}
+              {wordFile && (
+                <div><strong style={{ color: "var(--or-green)" }}>Word:</strong> {wordFile.filename} ({formatSize(wordFile.size)})</div>
               )}
               {imageFiles.length > 0 && (
                 <div><strong style={{ color: "var(--or-green)" }}>Images:</strong> {imageFiles.length} file(s)</div>
@@ -540,11 +702,12 @@ export default function VenueSubmitPage() {
                       keywords,
                       content_type: contentType,
                       content_markdown: contentType === "markdown" ? contentMarkdown : null,
-                      pdf_url: pdfFile?.url || null,
+                      pdf_url: pdfFile?.url || wordFile?.url || null,
                       image_urls: imageFiles.map((f) => f.url),
                       supplementary_urls: supplementaryFiles.map((f) => ({ url: f.url, filename: f.filename, size: f.size })),
                       venue_id: venue.id,
                       review_mode: reviewMode,
+                      editor_invite_code: reviewMode === "instant" ? editorInviteCode : undefined,
                     }),
                   });
                   if (!res.ok) {
@@ -554,6 +717,16 @@ export default function VenueSubmitPage() {
                     return;
                   }
                   const { data } = await res.json();
+                  // Save co-authors if any
+                  if (authors.length > 0 && data.id) {
+                    try {
+                      await fetch(`/api/papers/${data.id}/authors`, {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({ authors }),
+                      });
+                    } catch { /* non-blocking */ }
+                  }
                   router.push(`/paper/${data.id}`);
                 } catch {
                   setSubmitError("Network error. Please try again.");

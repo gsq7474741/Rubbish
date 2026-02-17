@@ -12,6 +12,13 @@ export async function GET() {
 
   const anonId = hashUserId(user.id);
 
+  // Get user profile
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("username, display_name, avatar_url, role")
+    .eq("id", user.id)
+    .single();
+
   // Count unread notifications
   const { count } = await supabase
     .from("notifications")
@@ -22,6 +29,10 @@ export async function GET() {
   return NextResponse.json({
     user: {
       anonId,
+      username: profile?.username || null,
+      displayName: profile?.display_name || null,
+      avatarUrl: profile?.avatar_url || null,
+      role: profile?.role || "user",
       unreadCount: count || 0,
     },
   });

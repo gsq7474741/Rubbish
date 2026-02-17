@@ -74,9 +74,17 @@ export default async function VenuesPage() {
         <h1 className="text-[2.25rem] font-normal mb-2 mt-4" style={{ color: "var(--or-dark-blue)" }}>
           Venues
         </h1>
-        <p className="text-sm text-[var(--or-subtle-gray)] mb-6">
+        <p className="text-sm text-[var(--or-subtle-gray)] mb-4">
           Browse all RubbishReview venues. Each venue focuses on a specific area of academic rubbish.
         </p>
+
+        <Link
+          href="/venues/apply"
+          className="inline-block px-4 py-2 text-sm text-white mb-6"
+          style={{ backgroundColor: "var(--or-medium-blue)", borderRadius: 0 }}
+        >
+          + Apply to Create a Venue
+        </Link>
 
         <hr className="border-0 border-t border-[rgba(0,0,0,0.1)] mb-6" />
 
