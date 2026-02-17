@@ -6,13 +6,10 @@ export const metadata: Metadata = {
 };
 
 const venues = [
-  { name: "Notrue", parody: "Nature", field: "综合 — 收录一切学术垃圾", slug: "notrue" },
-  { name: "Dead Cell", parody: "Cell", field: "生物 — 养死细胞的心路历程", slug: "dead-cell" },
-  { name: "Abandoned Materials", parody: "Advanced Materials", field: "化学 — 收率低于 0.5% 的实验", slug: "abandoned-materials" },
-  { name: "Nothing Communication", parody: "IEEE Communications", field: "通信 — 信噪比为负的研究", slug: "nothing-communication" },
+  { name: "Notrue", parody: "Nature", field: "综合 — 收录一切学术垃圾，只发表不自然的发现", slug: "notrue" },
+  { name: "Dead Cell", parody: "Cell", field: "生物 — 养死细胞的心路历程，只收录死掉的", slug: "dead-cell" },
+  { name: "Abandoned Materials", parody: "Advanced Materials", field: "化学 — 收率低于 0.5% 的实验，只收录被抛弃的", slug: "abandoned-materials" },
   { name: "The Fool", parody: "NeurIPS / ICML", field: "计算机 — 跑不通的代码和过拟合的模型", slug: "the-fool" },
-  { name: "Joker of Academics", parody: "Annals of Mathematics", field: "数学 — 证明了半页发现漏洞的定理", slug: "joker-of-academics" },
-  { name: "Silence", parody: "Physical Review Letters", field: "物理 — 实验结果什么也没说", slug: "silence" },
 ];
 
 export default function AboutPage() {
@@ -49,7 +46,8 @@ export default function AboutPage() {
 
           <h3 className="text-base font-normal mt-6 mb-2" style={{ color: "var(--or-dark-blue)" }}>Venues (学术底刊)</h3>
           <p className="mb-3">
-            RubbishReview hosts 7 specialized venues, each parodying a prestigious real-world journal.
+            RubbishReview hosts multiple specialized venues, each parodying a prestigious real-world journal.
+            Venues are community-driven — anyone can <Link href="/venues/apply" style={{ color: "var(--or-medium-blue)" }} className="hover:underline">apply to create a new venue</Link>.
             Visit our <Link href="/venues" style={{ color: "var(--or-medium-blue)" }} className="hover:underline">Venues page</Link> to explore them all.
           </p>
           <div className="overflow-x-auto">
