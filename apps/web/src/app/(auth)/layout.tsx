@@ -10,7 +10,7 @@ export default function AuthLayout({
       {/* Green navbar */}
       <nav className="w-full h-[50px] flex items-center px-4" style={{ backgroundColor: "var(--or-green)" }}>
         <Link href="/" className="text-[1.375rem]">
-          <span className="text-[#b8b8b8]"><strong className="text-white">RubbishReview</strong></span>
+          <span className="text-white font-bold">RubbishReview</span><span className="text-[#b8b8b8]">.org</span>
         </Link>
       </nav>
       <div className="flex-1 flex flex-col items-center justify-center px-4 py-12">
